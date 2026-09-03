@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共鳴判定</title>
+<style>
+body{margin:0;padding:10px;background:#f4f4f4;font-family:Arial,sans-serif;color:#222}
+main{max-width:700px;margin:auto}
+section{background:white;border-radius:14px;padding:16px;margin-bottom:12px}
+h1{text-align:center;font-size:26px}
+h2{margin:0 0 10px;font-size:20px}
+.number{text-align:center;font-size:50px;font-weight:bold;margin:5px}
+.buttons{display:flex;gap:8px}
+button{flex:1;min-height:52px;font-size:18px;border:1px solid #aaa;border-radius:10px;background:#eee}
+.status{text-align:center;font-size:28px;font-weight:bold;padding:12px;margin-top:12px;border-radius:10px}
+.ok{background:#dff5df}.ng{background:#ffe0e0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.art{min-height:60px;font-size:15px}
+.art.active{background:#dce8ff}
+ul{padding:0;list-style:none}
+li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #ddd}
+li button{flex:0 0 60px;min-height:42px;font-size:16px}
+.reset{width:100%;margin-bottom:20px}
+.bgm-button{width:100%;margin-bottom:20px;background:#eee}
+@media(max-width:380px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>共鳴判定</h1>
+
+<section>
+<h2>体力</h2>
+<div class="number" id="hp">20</div>
+<div class="buttons">
+<button onclick="hpChange(-1)">−1</button>
+<button onclick="hpChange(1)">＋1</button>
+<button onclick="hpChange(2)">＋2</button>
+<button onclick="hpChange(3)">＋3</button>
+<button onclick="hpChange(5)">＋5</button>
+</div>
+</section>
+
+<section>
+<h2>現在の山札</h2>
+<div class="number" id="deck">40</div>
+<div class="buttons">
+<button onclick="deckChange(-1)">−1</button>
+<button onclick="deckChange(-3)">−3</button>
+<button onclick="deckChange(2)">＋2</button>
+<button onclick="deckChange(3)">＋3</button>
+</div>
+<div id="status" class="status ok">共鳴</div>
+</section>
+
+<section>
+<h2>破壊されたアーティファクト</h2>
+<div class="grid" id="artifactButtons"></div>
+<ul id="list"></ul>
+</section>
+
+<button class="bgm-button" onclick="toggleBGM()">BGM（ネメシス） ▶</button>
+<button class="reset" onclick="resetAll()">すべてリセット</button>
+</main>
+
+<audio id="bgm" src="シャドウバース ネメシス(ユアン)bgm long version.mp3" loop></audio>
+
+<script>
+const names=[
+"メカニカルドッグ","多腕のアーティファクト","アストロウィング・ララミア",
+"フルブラストガンナー","人造の代弁者・ヴァーミディア","エッジアーティファクト",
+"ジェネシスアーティファクト","ディフェンスアーティファクト","ガードアーティファクト",
+"キャノンアーティファクト","セレスティアルアーティファクト","アナライズアーティファクト",
+"エンシェントアーティファクト","ミスティックアーティファクト"
+];
+
+let hp=Number(localStorage.getItem("hp"))||20;
+let deck=Number(localStorage.getItem("deck"))||40;
+let arts=JSON.parse(localStorage.getItem("arts")||"{}");
+
+function toggleBGM(){
+ const bgm=document.getElementById("bgm");
+ if(bgm.paused) bgm.play();
+ else bgm.pause();
+}
+document.getElementById("bgm").addEventListener("play",()=>{
+ document.querySelector(".bgm-button").textContent="BGM（ネメシス） ⏸";
+});
+document.getElementById("bgm").addEventListener("pause",()=>{
+ document.querySelector(".bgm-button").textContent="BGM（ネメシス） ▶";
+});
+
+function save(){
+ localStorage.setItem("hp",hp);
+ localStorage.setItem("deck",deck);
+ localStorage.setItem("arts",JSON.stringify(arts));
+}
+function hpChange(n){hp=Math.max(0,hp+n);save();render()}
+function deckChange(n){deck=Math.max(0,deck+n);save();render()}
+function add(n){arts[n]=(arts[n]||0)+1;save();render()}
+function sub(n){
+ if(arts[n]>1)arts[n]--;else delete arts[n];
+ save();render();
+}
+function render(){
+ document.getElementById("hp").textContent=hp;
+ document.getElementById("deck").textContent=deck;
+ const s=document.getElementById("status");
+ const even=deck%2===0;
+ s.textContent=even?"共鳴":"非共鳴";
+ s.className="status "+(even?"ok":"ng");
+
+ const b=document.getElementById("artifactButtons");
+ b.innerHTML="";
+ names.forEach(n=>{
+  const x=document.createElement("button");
+  x.className="art"+(arts[n]?" active":"");
+  x.textContent=arts[n]?n+" × "+arts[n]:n;
+  x.onclick=()=>add(n);
+  b.appendChild(x);
+ });
+ const l=document.getElementById("list");
+ l.innerHTML="";
+ names.forEach(n=>{
+  if(!arts[n])return;
+  const li=document.createElement("li");
+  li.innerHTML="<span>"+n+" × "+arts[n]+"</span>";
+  const x=document.createElement("button");
+  x.textContent="−1";x.onclick=()=>sub(n);
+  li.appendChild(x);l.appendChild(li);
+ });
+}
+function resetAll(){
+ if(confirm("すべて初期状態に戻しますか？")){
+  hp=20;deck=40;arts={};save();render();
+ }
+}
+render();
+</script>
+</body>
+</html>
